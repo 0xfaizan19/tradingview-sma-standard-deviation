@@ -1,0 +1,108 @@
+//@version=6
+indicator("SMA Standard Deviation", shorttitle="SMA Standard Deviation", overlay=true)
+
+// Shared inputs (hidden from the legend)
+src      = input.source(close, "Source", display=display.none)
+bandMode = input.string("Log", "Band Mode", options=["Log", "Linear"], tooltip="Log: deviation measured in % terms, bands never go below zero. Linear: deviation measured in price units.", display=display.none)
+isLog    = bandMode == "Log"
+
+// Standard deviation levels (applied to every SMA)
+gSD = "Standard Deviations"
+sd1On = input.bool(true, "SD 1", inline="sd1", group=gSD, display=display.none)
+sd1   = input.float(1.0, "", minval=0.1, step=0.1, inline="sd1", group=gSD, display=display.none)
+sd2On = input.bool(false, "SD 2", inline="sd2", group=gSD, display=display.none)
+sd2   = input.float(0.5, "", minval=0.1, step=0.1, inline="sd2", group=gSD, display=display.none)
+sd3On = input.bool(false, "SD 3", inline="sd3", group=gSD, display=display.none)
+sd3   = input.float(2.0, "", minval=0.1, step=0.1, inline="sd3", group=gSD, display=display.none)
+sd4On = input.bool(false, "SD 4", inline="sd4", group=gSD, display=display.none)
+sd4   = input.float(3.0, "", minval=0.1, step=0.1, inline="sd4", group=gSD, display=display.none)
+
+// SMA 20
+g20        = "SMA 20"
+on20       = input.bool(true, "SMA 20", inline="m20", group=g20, display=display.none)
+len20      = input.int(20, "", minval=1, inline="m20", group=g20, display=display.none)
+show20     = input.bool(true, "SMA",   inline="s20", group=g20, display=display.none)
+show20Band = input.bool(true, "Bands", inline="s20", group=g20, display=display.none)
+show20Fill = input.bool(true, "Fill",  inline="s20", group=g20, display=display.none)
+
+// SMA 50
+g50        = "SMA 50"
+on50       = input.bool(true, "SMA 50", inline="m50", group=g50, display=display.none)
+len50      = input.int(50, "", minval=1, inline="m50", group=g50, display=display.none)
+show50     = input.bool(true, "SMA",   inline="s50", group=g50, display=display.none)
+show50Band = input.bool(true, "Bands", inline="s50", group=g50, display=display.none)
+show50Fill = input.bool(true, "Fill",  inline="s50", group=g50, display=display.none)
+
+// SMA 200
+g200        = "SMA 200"
+on200       = input.bool(true, "SMA 200", inline="m200", group=g200, display=display.none)
+len200      = input.int(200, "", minval=1, inline="m200", group=g200, display=display.none)
+show200     = input.bool(true, "SMA",   inline="s200", group=g200, display=display.none)
+show200Band = input.bool(true, "Bands", inline="s200", group=g200, display=display.none)
+show200Fill = input.bool(true, "Fill",  inline="s200", group=g200, display=display.none)
+
+// Calculations
+f_stats(len) =>
+    [ta.sma(src, len), ta.stdev(src, len), ta.stdev(math.log(src), len)]
+
+// Log mode scales the SMA by e^(k * stdev of log price), so bands stay positive
+f_band(basis, devLin, devLog, k) =>
+    isLog ? basis * math.exp(k * devLog) : basis + k * devLin
+
+[b20, dLin20, dLog20] = f_stats(len20)
+[b50, dLin50, dLog50] = f_stats(len50)
+[b200, dLin200, dLog200] = f_stats(len200)
+
+// Plots: SMA 20 (lines that are switched off are hidden from the legend too)
+sma20  = on20 and show20
+band20 = on20 and show20Band
+fill20 = band20 and show20Fill
+plot(sma20 ? b20 : na, "SMA 20", color=color.orange, linewidth=2, display=sma20 ? display.all : display.none)
+p20u1 = plot(band20 and sd1On ? f_band(b20, dLin20, dLog20, sd1) : na, "SMA 20 +SD 1", color=color.new(color.orange, 40), display=band20 and sd1On ? display.all : display.none)
+p20l1 = plot(band20 and sd1On ? f_band(b20, dLin20, dLog20, -sd1) : na, "SMA 20 -SD 1", color=color.new(color.orange, 40), display=band20 and sd1On ? display.all : display.none)
+fill(p20u1, p20l1, color=fill20 and sd1On ? color.new(color.orange, 92) : na, title="SMA 20 Fill SD 1")
+p20u2 = plot(band20 and sd2On ? f_band(b20, dLin20, dLog20, sd2) : na, "SMA 20 +SD 2", color=color.new(color.orange, 40), display=band20 and sd2On ? display.all : display.none)
+p20l2 = plot(band20 and sd2On ? f_band(b20, dLin20, dLog20, -sd2) : na, "SMA 20 -SD 2", color=color.new(color.orange, 40), display=band20 and sd2On ? display.all : display.none)
+fill(p20u2, p20l2, color=fill20 and sd2On ? color.new(color.orange, 92) : na, title="SMA 20 Fill SD 2")
+p20u3 = plot(band20 and sd3On ? f_band(b20, dLin20, dLog20, sd3) : na, "SMA 20 +SD 3", color=color.new(color.orange, 40), display=band20 and sd3On ? display.all : display.none)
+p20l3 = plot(band20 and sd3On ? f_band(b20, dLin20, dLog20, -sd3) : na, "SMA 20 -SD 3", color=color.new(color.orange, 40), display=band20 and sd3On ? display.all : display.none)
+fill(p20u3, p20l3, color=fill20 and sd3On ? color.new(color.orange, 92) : na, title="SMA 20 Fill SD 3")
+p20u4 = plot(band20 and sd4On ? f_band(b20, dLin20, dLog20, sd4) : na, "SMA 20 +SD 4", color=color.new(color.orange, 40), display=band20 and sd4On ? display.all : display.none)
+p20l4 = plot(band20 and sd4On ? f_band(b20, dLin20, dLog20, -sd4) : na, "SMA 20 -SD 4", color=color.new(color.orange, 40), display=band20 and sd4On ? display.all : display.none)
+fill(p20u4, p20l4, color=fill20 and sd4On ? color.new(color.orange, 92) : na, title="SMA 20 Fill SD 4")
+
+// Plots: SMA 50 (lines that are switched off are hidden from the legend too)
+sma50  = on50 and show50
+band50 = on50 and show50Band
+fill50 = band50 and show50Fill
+plot(sma50 ? b50 : na, "SMA 50", color=color.blue, linewidth=2, display=sma50 ? display.all : display.none)
+p50u1 = plot(band50 and sd1On ? f_band(b50, dLin50, dLog50, sd1) : na, "SMA 50 +SD 1", color=color.new(color.blue, 40), display=band50 and sd1On ? display.all : display.none)
+p50l1 = plot(band50 and sd1On ? f_band(b50, dLin50, dLog50, -sd1) : na, "SMA 50 -SD 1", color=color.new(color.blue, 40), display=band50 and sd1On ? display.all : display.none)
+fill(p50u1, p50l1, color=fill50 and sd1On ? color.new(color.blue, 92) : na, title="SMA 50 Fill SD 1")
+p50u2 = plot(band50 and sd2On ? f_band(b50, dLin50, dLog50, sd2) : na, "SMA 50 +SD 2", color=color.new(color.blue, 40), display=band50 and sd2On ? display.all : display.none)
+p50l2 = plot(band50 and sd2On ? f_band(b50, dLin50, dLog50, -sd2) : na, "SMA 50 -SD 2", color=color.new(color.blue, 40), display=band50 and sd2On ? display.all : display.none)
+fill(p50u2, p50l2, color=fill50 and sd2On ? color.new(color.blue, 92) : na, title="SMA 50 Fill SD 2")
+p50u3 = plot(band50 and sd3On ? f_band(b50, dLin50, dLog50, sd3) : na, "SMA 50 +SD 3", color=color.new(color.blue, 40), display=band50 and sd3On ? display.all : display.none)
+p50l3 = plot(band50 and sd3On ? f_band(b50, dLin50, dLog50, -sd3) : na, "SMA 50 -SD 3", color=color.new(color.blue, 40), display=band50 and sd3On ? display.all : display.none)
+fill(p50u3, p50l3, color=fill50 and sd3On ? color.new(color.blue, 92) : na, title="SMA 50 Fill SD 3")
+p50u4 = plot(band50 and sd4On ? f_band(b50, dLin50, dLog50, sd4) : na, "SMA 50 +SD 4", color=color.new(color.blue, 40), display=band50 and sd4On ? display.all : display.none)
+p50l4 = plot(band50 and sd4On ? f_band(b50, dLin50, dLog50, -sd4) : na, "SMA 50 -SD 4", color=color.new(color.blue, 40), display=band50 and sd4On ? display.all : display.none)
+fill(p50u4, p50l4, color=fill50 and sd4On ? color.new(color.blue, 92) : na, title="SMA 50 Fill SD 4")
+
+// Plots: SMA 200 (lines that are switched off are hidden from the legend too)
+sma200  = on200 and show200
+band200 = on200 and show200Band
+fill200 = band200 and show200Fill
+plot(sma200 ? b200 : na, "SMA 200", color=color.purple, linewidth=2, display=sma200 ? display.all : display.none)
+p200u1 = plot(band200 and sd1On ? f_band(b200, dLin200, dLog200, sd1) : na, "SMA 200 +SD 1", color=color.new(color.purple, 40), display=band200 and sd1On ? display.all : display.none)
+p200l1 = plot(band200 and sd1On ? f_band(b200, dLin200, dLog200, -sd1) : na, "SMA 200 -SD 1", color=color.new(color.purple, 40), display=band200 and sd1On ? display.all : display.none)
+fill(p200u1, p200l1, color=fill200 and sd1On ? color.new(color.purple, 92) : na, title="SMA 200 Fill SD 1")
+p200u2 = plot(band200 and sd2On ? f_band(b200, dLin200, dLog200, sd2) : na, "SMA 200 +SD 2", color=color.new(color.purple, 40), display=band200 and sd2On ? display.all : display.none)
+p200l2 = plot(band200 and sd2On ? f_band(b200, dLin200, dLog200, -sd2) : na, "SMA 200 -SD 2", color=color.new(color.purple, 40), display=band200 and sd2On ? display.all : display.none)
+fill(p200u2, p200l2, color=fill200 and sd2On ? color.new(color.purple, 92) : na, title="SMA 200 Fill SD 2")
+p200u3 = plot(band200 and sd3On ? f_band(b200, dLin200, dLog200, sd3) : na, "SMA 200 +SD 3", color=color.new(color.purple, 40), display=band200 and sd3On ? display.all : display.none)
+p200l3 = plot(band200 and sd3On ? f_band(b200, dLin200, dLog200, -sd3) : na, "SMA 200 -SD 3", color=color.new(color.purple, 40), display=band200 and sd3On ? display.all : display.none)
+fill(p200u3, p200l3, color=fill200 and sd3On ? color.new(color.purple, 92) : na, title="SMA 200 Fill SD 3")
+p200u4 = plot(band200 and sd4On ? f_band(b200, dLin200, dLog200, sd4) : na, "SMA 200 +SD 4", color=color.new(color.purple, 40), display=band200 and sd4On ? display.all : display.none)
+p200l4 = plot(band200 and sd4On ? f_band(b200, dLin200, dLog200, -sd4) : na, "SMA 200 -SD 4", color=color.new(color.purple, 40), display=band200 and sd4On ? display.all : display.none)
+fill(p200u4, p200l4, color=fill200 and sd4On ? color.new(color.purple, 92) : na, title="SMA 200 Fill SD 4")
